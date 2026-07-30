@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Kanallar - UzbekTube{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Barcha Kanallar</h2>
+    <button onclick="loadKanallar()" style="margin-bottom: 1rem;">Yangilash</button>
+    <div id="kanal-list"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadKanallar() {
+    try {
+        const response = await fetch('/api/v1/kanal/list/');
+        const kanallar = await response.json();
+        
+        const container = document.getElementById('kanal-list');
+        if (kanallar.length === 0) {
+            container.innerHTML = '<p>Hozircha kanallar yo\'q</p>';
+            return;
+        }
+        
+        container.innerHTML = kanallar.map(kanal => `
+            <div class="card" style="margin-bottom: 1rem;">
+                <h3>${kanal.nomi}</h3>
+                <p><strong>ID:</strong> ${kanal.identifikator}</p>
+                <p><strong>Tavsif:</strong> ${kanal.description}</p>
+                ${kanal.havolalar ? `<p><strong>Havola:</strong> <a href="${kanal.havolalar}" target="_blank">${kanal.havolalar}</a></p>` : ''}
+                <p><small>Yaratilgan: ${new Date(kanal.created_at).toLocaleString('uz-UZ')}</small></p>
+                <a href="{% url 'kanal_put' %}?id=${kanal.id}" style="display: inline-block; margin-top: 0.5rem; color: #cc0000;">Tahrirlash</a>
+            </div>
+        `).join('');
+    } catch (error) {
+        document.getElementById('kanal-list').innerHTML = '<div class="error">Xatolik yuz berdi: ' + error.message + '</div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadKanallar);
+</script>
+{% endblock %}

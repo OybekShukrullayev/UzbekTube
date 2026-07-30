@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Videoni Tahrirlash - UzbekTube{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Videoni Tahrirlash</h2>
+    <form id="video-update-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="title">Video nomi:</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Tavsif:</label>
+            <textarea id="description" name="description" rows="4" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="thumbnail">Yangi thumbnail:</label>
+            <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
+        </div>
+        
+        <div class="form-group">
+            <label for="video">Yangi video fayl:</label>
+            <input type="file" id="video" name="video" accept="video/*">
+        </div>
+        
+        <button type="submit">Saqlash</button>
+        <a href="{% url 'video_get' %}" style="margin-left: 1rem;">Bekor qilish</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const videoId = urlParams.get('id');
+
+async function loadVideo() {
+    try {
+        const response = await fetch(`/api/v1/video/${videoId}/`);
+        if (response.ok) {
+            const video = await response.json();
+            document.getElementById('title').value = video.title;
+            document.getElementById('description').value = video.description;
+        } else {
+            alert('Video topilmadi');
+            window.location.href = "{% url 'video_get' %}";
+        }
+    } catch (error) {
+        alert('Xatolik: ' + error.message);
+    }
+}
+
+document.getElementById('video-update-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('title', document.getElementById('title').value);
+    formData.append('description', document.getElementById('description').value);
+    
+    const thumbnailFile = document.getElementById('thumbnail').files[0];
+    if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+    }
+    
+    const videoFile = document.getElementById('video').files[0];
+    if (videoFile) {
+        formData.append('video', videoFile);
+    }
+    
+    try {
+        const response = await fetch(`/api/v1/video/${videoId}/`, {
+            method: 'PUT',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert('Video muvaffaqiyatli yangilandi!');
+            window.location.href = "{% url 'video_get' %}";
+        } else {
+            const error = await response.json();
+            alert('Xatolik: ' + JSON.stringify(error));
+        }
+    } catch (error) {
+        alert('Xatolik yuz berdi: ' + error.message);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', loadVideo);
+</script>
+{% endblock %}

@@ -10,7 +10,7 @@ class VideoListCreateAPIView(APIView):
         serializer = VideoSerializer(video, many=True)
         return Response(serializer.data)
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         serializer = VideoSerializer(many=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

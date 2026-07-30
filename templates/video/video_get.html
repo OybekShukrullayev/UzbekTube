@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Videolar - UzbekTube{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Barcha Videolar</h2>
+    <button onclick="loadVideolar()" style="margin-bottom: 1rem;">Yangilash</button>
+    <div id="video-list"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadVideolar() {
+    try {
+        const response = await fetch('/api/v1/video/');
+        const videolar = await response.json();
+        
+        const container = document.getElementById('video-list');
+        if (videolar.length === 0) {
+            container.innerHTML = '<p>Hozircha videolar yo\'q</p>';
+            return;
+        }
+        
+        container.innerHTML = videolar.map(video => `
+            <div class="card" style="margin-bottom: 1rem;">
+                <h3>${video.title}</h3>
+                <p><strong>Tavsif:</strong> ${video.description}</p>
+                ${video.thumbnail ? `<img src="${video.thumbnail}" alt="${video.title}" style="max-width: 100%; margin: 1rem 0; border-radius: 4px;">` : ''}
+                ${video.video ? `<video controls style="max-width: 100%; margin: 1rem 0;"><source src="${video.video}" type="video/mp4"></video>` : ''}
+                <p><small>Yaratilgan: ${new Date(video.created_at).toLocaleString('uz-UZ')}</small></p>
+                <a href="{% url 'video_put' %}?id=${video.id}" style="display: inline-block; margin-top: 0.5rem; color: #cc0000;">Tahrirlash</a>
+            </div>
+        `).join('');
+    } catch (error) {
+        document.getElementById('video-list').innerHTML = '<div class="error">Xatolik yuz berdi: ' + error.message + '</div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadVideolar);
+</script>
+{% endblock %}

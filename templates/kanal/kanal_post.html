@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Kanal Yaratish - UzbekTube{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Yangi Kanal Yaratish</h2>
+    <form id="kanal-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="nomi">Kanal nomi:</label>
+            <input type="text" id="nomi" name="nomi" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="identifikator">Identifikator (username):</label>
+            <input type="text" id="identifikator" name="identifikator" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Tavsif:</label>
+            <textarea id="description" name="description" rows="4" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="havolalar">Havola (ixtiyoriy):</label>
+            <input type="url" id="havolalar" name="havolalar">
+        </div>
+        
+        <button type="submit">Kanal yaratish</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('kanal-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        nomi: document.getElementById('nomi').value,
+        identifikator: document.getElementById('identifikator').value,
+        description: document.getElementById('description').value,
+        havolalar: document.getElementById('havolalar').value
+    };
+    
+    try {
+        const response = await fetch('/api/v1/kanal/list/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            alert('Kanal muvaffaqiyatli yaratildi!');
+            window.location.href = "{% url 'kanal_get' %}";
+        } else {
+            const error = await response.json();
+            alert('Xatolik: ' + JSON.stringify(error));
+        }
+    } catch (error) {
+        alert('Xatolik yuz berdi: ' + error.message);
+    }
+});
+</script>
+{% endblock %}

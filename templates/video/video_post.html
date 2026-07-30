@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}Video Yuklash - UzbekTube{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Yangi Video Yuklash</h2>
+    <div id="message" style="display: none; margin-bottom: 1rem; padding: 1rem; border-radius: 4px;"></div>
+
+    <form id="video-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="title">Video nomi:</label>
+            <input type="text" id="title" name="title" required placeholder="Video nomini kiriting">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Tavsif:</label>
+            <textarea id="description" name="description" rows="4" required placeholder="Video haqida ma'lumot"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="thumbnail">Thumbnail (rasm, ixtiyoriy):</label>
+            <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
+            <small style="color: #666;">JPG, PNG formatlar</small>
+        </div>
+
+        <div class="form-group">
+            <label for="video">Video fayl:</label>
+            <input type="file" id="video" name="video" accept="video/*" required>
+            <small style="color: #666;">MP4, WebM formatlar</small>
+        </div>
+
+        <button type="submit" id="submit-btn">Video yuklash</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CSRF tokenni cookie dan olish funksiyasi
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.getElementById('video-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const messageDiv = document.getElementById('message');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // Yuklanmoqda holati
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Yuklanmoqda...';
+    messageDiv.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('title', document.getElementById('title').value.trim());
+    formData.append('description', document.getElementById('description').value.trim());
+
+    const thumbnailFile = document.getElementById('thumbnail').files[0];
+    if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+    }
+
+    const videoFile = document.getElementById('video').files[0];
+    if (videoFile) {
+        formData.append('video', videoFile);
+    }
+
+    // CSRF tokenni olish
+    const csrftoken = getCookie('csrftoken');
+
+    console.log('=== FormData ===');
+    for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+    }
+    console.log('CSRF Token:', csrftoken);
+
+    try {
+        const response = await fetch('/api/v1/video/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken  // CSRF tokenni header orqali yuborish
+            },
+            body: formData
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response OK:', response.ok);
+
+        const responseText = await response.text();
+        console.log('Response text:', responseText);
+
+        // Response ni JSON ga parse qilish
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            console.error('JSON parse error:', e);
+        }
+
+        if (response.ok && data) {
+            // Muvaffaqiyatli
+            messageDiv.style.display = 'block';
+            messageDiv.className = 'success';
+            messageDiv.style.backgroundColor = '#4CAF50';
+            messageDiv.style.color = 'white';
+            messageDiv.innerHTML = '✅ Video muvaffaqiyatli yuklandi!';
+
+            // Formani tozalash
+            document.getElementById('video-form').reset();
+
+            // 2 soniyadan keyin videolar sahifasiga o'tish
+            setTimeout(() => {
+                window.location.href = "{% url 'video_get' %}";
+            }, 2000);
+        } else {
+            // Xatolik
+            messageDiv.style.display = 'block';
+            messageDiv.className = 'error';
+            messageDiv.style.backgroundColor = '#f44336';
+            messageDiv.style.color = 'white';
+
+            if (data) {
+                // JSON xatolik
+                let errorMsg = '❌ Xatolik yuz berdi:<br>';
+                for (let [key, value] of Object.entries(data)) {
+                    errorMsg += `<strong>${key}:</strong> ${Array.isArray(value) ? value.join(', ') : value}<br>`;
+                }
+                messageDiv.innerHTML = errorMsg;
+            } else {
+                messageDiv.innerHTML = '❌ Noma\'lum xatolik. Status: ' + response.status;
+            }
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'error';
+        messageDiv.style.backgroundColor = '#f44336';
+        messageDiv.style.color = 'white';
+        messageDiv.innerHTML = '❌ Tarmoq xatosi: ' + error.message;
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Video yuklash';
+    }
+});
+</script>
+{% endblock %}

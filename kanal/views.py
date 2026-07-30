@@ -7,7 +7,7 @@ from .models import Kanal
 
 class KanalListCreateAPIView(APIView):
     def get(self, request):
-        kanal = Kanal.objects.filter()
+        kanal = Kanal.objects.all()
         serializer = KanalSerializer(kanal, many=True)
         return Response(serializer.data)
 
@@ -22,18 +22,6 @@ class KanalDetailAPIView(APIView):
     def get(self, request, pk):
         serializer = KanalSerializer(self.get_object(pk))
         return Response(serializer.data)
-
-    # def put(self, request, pk):
-    #     serializer = KanalSerializer(pk=pk)
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-    #     return Response(serializer.data)
-    #
-    # def patch(self, request, pk):
-    #     serializer = KanalSerializer(self.get_object(pk), data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-    #     return Response(serializer.data)
 
     def put(self, request, pk):
         kanal = self.get_object(pk)
