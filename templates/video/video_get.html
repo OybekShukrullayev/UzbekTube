@@ -1,13 +1,119 @@
 {% extends 'base.html' %}
 
-{% block title %}Videolar - UzbekTube{% endblock %}
+{% block title %}Bosh Sahifa - UzbekTube{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Barcha Videolar</h2>
-    <button onclick="loadVideolar()" style="margin-bottom: 1rem;">Yangilash</button>
-    <div id="video-list"></div>
+<style>
+    .video-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+
+    .video-card {
+        background: #1e1e1e;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .video-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .video-thumbnail {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+        background: #282828;
+    }
+
+    .video-info {
+        padding: 12px;
+        display: flex;
+        gap: 12px;
+    }
+
+    .channel-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #cc0000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+
+    .video-details {
+        flex: 1;
+    }
+
+    .video-title {
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .video-meta {
+        color: #aaa;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .video-duration {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .thumbnail-wrapper {
+        position: relative;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #aaa;
+    }
+
+    .no-videos {
+        text-align: center;
+        padding: 60px 20px;
+        color: #aaa;
+        grid-column: 1 / -1;
+    }
+
+    @media (max-width: 768px) {
+        .video-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+            padding: 16px;
+        }
+    }
+</style>
+
+<div class="video-grid" id="video-list">
+    <div class="loading">Videolar yuklanmoqda...</div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -16,26 +122,71 @@ async function loadVideolar() {
     try {
         const response = await fetch('/api/v1/video/');
         const videolar = await response.json();
-        
+
         const container = document.getElementById('video-list');
-        if (videolar.length === 0) {
-            container.innerHTML = '<p>Hozircha videolar yo\'q</p>';
+
+        if (!videolar || videolar.length === 0) {
+            container.innerHTML = `
+                <div class="no-videos">
+                    <h2>Hozircha videolar yo'q</h2>
+                    <p>Birinchi bo'lib video yuklang!</p>
+                </div>
+            `;
             return;
         }
-        
-        container.innerHTML = videolar.map(video => `
-            <div class="card" style="margin-bottom: 1rem;">
-                <h3>${video.title}</h3>
-                <p><strong>Tavsif:</strong> ${video.description}</p>
-                ${video.thumbnail ? `<img src="${video.thumbnail}" alt="${video.title}" style="max-width: 100%; margin: 1rem 0; border-radius: 4px;">` : ''}
-                ${video.video ? `<video controls style="max-width: 100%; margin: 1rem 0;"><source src="${video.video}" type="video/mp4"></video>` : ''}
-                <p><small>Yaratilgan: ${new Date(video.created_at).toLocaleString('uz-UZ')}</small></p>
-                <a href="{% url 'video_put' %}?id=${video.id}" style="display: inline-block; margin-top: 0.5rem; color: #cc0000;">Tahrirlash</a>
-            </div>
-        `).join('');
+
+        container.innerHTML = videolar.map(video => {
+            const date = new Date(video.created_at);
+            const timeAgo = getTimeAgo(date);
+            const views = Math.floor(Math.random() * 100) + ' ming'; // Tasodifiy ko'rishlar soni
+            const initials = video.channel_name ? video.channel_name.charAt(0).toUpperCase() : 'U';
+
+            return `
+                <div class="video-card" onclick="window.location.href='/video/${video.id}/'">
+                    <div class="thumbnail-wrapper">
+                        <img src="${video.thumbnail || '/static/images/default-thumbnail.jpg'}"
+                             alt="${video.title}"
+                             class="video-thumbnail"
+                             onerror="this.src='/static/images/default-thumbnail.jpg'">
+                        <span class="video-duration">11:58</span>
+                    </div>
+                    <div class="video-info">
+                        <div class="channel-avatar">${initials}</div>
+                        <div class="video-details">
+                            <h3 class="video-title">${video.title}</h3>
+                            <div class="video-meta">
+                                <div>${video.channel_name || 'Nomalum kanal'}</div>
+                                <div>${views} marta ko'rilgan • ${timeAgo}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     } catch (error) {
-        document.getElementById('video-list').innerHTML = '<div class="error">Xatolik yuz berdi: ' + error.message + '</div>';
+        console.error('Xatolik:', error);
+        document.getElementById('video-list').innerHTML = `
+            <div class="no-videos">
+                <h2>Xatolik yuz berdi</h2>
+                <p>${error.message}</p>
+                <button onclick="loadVideolar()" style="margin-top: 1rem; padding: 8px 16px; cursor: pointer;">
+                    Qayta urinish
+                </button>
+            </div>
+        `;
     }
+}
+
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'bir necha soniya oldin';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} daqiqa oldin`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} soat oldin`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} kun oldin`;
+    if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} oy oldin`;
+    return `${Math.floor(diffInSeconds / 31536000)} yil oldin`;
 }
 
 document.addEventListener('DOMContentLoaded', loadVideolar);
