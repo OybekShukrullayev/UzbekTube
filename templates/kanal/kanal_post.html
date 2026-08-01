@@ -1,70 +1,60 @@
 {% extends 'base.html' %}
-
 {% block title %}Kanal Yaratish - UzbekTube{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Yangi Kanal Yaratish</h2>
-    <form id="kanal-form">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="nomi">Kanal nomi:</label>
-            <input type="text" id="nomi" name="nomi" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="identifikator">Identifikator (username):</label>
-            <input type="text" id="identifikator" name="identifikator" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="description">Tavsif:</label>
-            <textarea id="description" name="description" rows="4" required></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="havolalar">Havola (ixtiyoriy):</label>
-            <input type="url" id="havolalar" name="havolalar">
-        </div>
-        
-        <button type="submit">Kanal yaratish</button>
-    </form>
-</div>
-{% endblock %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-warning">
+                <h3 class="mb-0">Yangi Kanal Yaratish</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Video yuklash uchun avval o'zingizga kanal yaratishingiz kerak.
+                    Bir foydalanuvchi faqat bitta kanal yarata oladi.
+                </p>
 
-{% block extra_js %}
-<script>
-document.getElementById('kanal-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = {
-        nomi: document.getElementById('nomi').value,
-        identifikator: document.getElementById('identifikator').value,
-        description: document.getElementById('description').value,
-        havolalar: document.getElementById('havolalar').value
-    };
-    
-    try {
-        const response = await fetch('/api/v1/kanal/list/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            alert('Kanal muvaffaqiyatli yaratildi!');
-            window.location.href = "{% url 'kanal_get' %}";
-        } else {
-            const error = await response.json();
-            alert('Xatolik: ' + JSON.stringify(error));
-        }
-    } catch (error) {
-        alert('Xatolik yuz berdi: ' + error.message);
-    }
-});
-</script>
+                <form method="POST" action="{% url 'kanal_yaratish' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="nomi" class="form-label">Kanal nomi <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nomi" name="nomi"
+                               placeholder="Masalan: Oybek Tech" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="identifikator" class="form-label">Identifikator (Username) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">@</span>
+                            <input type="text" class="form-control" id="identifikator" name="identifikator"
+                                   placeholder="oybek_tech" required pattern="[a-zA-Z0-9_]+"
+                                   title="Faqat lotin harflari, raqamlar va pastki chiziqdan foydalaning">
+                        </div>
+                        <small class="text-muted">Bu noyob bo'lishi kerak va faqat lotin harflari, raqamlar va _ dan iborat bo'lishi mumkin.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Tavsif</label>
+                        <textarea class="form-control" id="description" name="description" rows="4"
+                                  placeholder="Kanalingiz haqida qisqacha..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="havolalar" class="form-label">Ijtimoiy tarmoq havolasi</label>
+                        <input type="url" class="form-control" id="havolalar" name="havolalar"
+                               placeholder="https://t.me/kanal_nomi">
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'home' %}" class="btn btn-secondary">Bekor qilish</a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-plus-circle"></i> Kanalni yaratish
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

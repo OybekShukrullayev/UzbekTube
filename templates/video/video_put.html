@@ -1,97 +1,139 @@
 {% extends 'base.html' %}
-
 {% block title %}Videoni Tahrirlash - UzbekTube{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Videoni Tahrirlash</h2>
-    <form id="video-update-form" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="title">Video nomi:</label>
-            <input type="text" id="title" name="title" required>
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Videoni Tahrirlash: {{ video.title }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'video_tahrirlash' video.id %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <!-- Chap tomon: Media fayllar -->
+                        <div class="col-md-6">
+                            <!-- Hozirgi video -->
+                            <div class="mb-3">
+                                <label class="form-label">Hozirgi video</label>
+                                <video controls class="w-100" style="max-height: 300px;">
+                                    <source src="{{ video.video.url }}" type="video/mp4">
+                                    Brauzeringiz videoni qo'llab-quvvatlamaydi.
+                                </video>
+                            </div>
+
+                            <!-- Yangi video (ixtiyoriy) -->
+                            <div class="mb-3">
+                                <label for="video" class="form-label">Yangi video fayli (ixtiyoriy)</label>
+                                <input type="file" class="form-control" id="video" name="video" accept="video/*">
+                                <small class="text-muted">Yangi fayl yuklasangiz, eski video almashtiriladi.</small>
+
+                                <!-- Yangi video preview -->
+                                <div id="newVideoPreview" class="mt-2" style="display:none;">
+                                    <video id="newVideoPlayer" controls class="w-100" style="max-height: 300px;"></video>
+                                </div>
+                            </div>
+
+                            <!-- Hozirgi thumbnail -->
+                            <div class="mb-3">
+                                <label class="form-label">Hozirgi muqova (Thumbnail)</label>
+                                {% if video.thumbnail %}
+                                    <img src="{{ video.thumbnail.url }}" class="img-thumbnail" alt="Muqova" style="max-height: 200px;">
+                                {% else %}
+                                    <div class="bg-secondary text-white p-3 text-center">Muqova yuklanmagan</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Yangi thumbnail (ixtiyoriy) -->
+                            <div class="mb-3">
+                                <label for="thumbnail" class="form-label">Yangi muqova (ixtiyoriy)</label>
+                                <input type="file" class="form-control" id="thumbnail" name="thumbnail" accept="image/*">
+
+                                <div id="newThumbPreview" class="mt-2" style="display:none;">
+                                    <img id="newThumbImg" class="img-thumbnail" style="max-height: 200px;" alt="Yangi muqova">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- O'ng tomon: Ma'lumotlar -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Video nomi <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="title" name="title"
+                                       value="{{ video.title }}" required maxlength="200">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Tavsif</label>
+                                <textarea class="form-control" id="description" name="description"
+                                          rows="5">{{ video.description }}</textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="ochiqligi" class="form-label">Ko'rinishi</label>
+                                <select class="form-select" id="ochiqligi" name="ochiqligi">
+                                    <option value="public" {% if video.ochiqligi == 'public' %}selected{% endif %}>🌍 Hammaga ochiq</option>
+                                    <option value="unlisted" {% if video.ochiqligi == 'unlisted' %}selected{% endif %}>🔗 Havola orqali</option>
+                                    <option value="private" {% if video.ochiqligi == 'private' %}selected{% endif %}>🔒 Maxfiy (faqat siz)</option>
+                                </select>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <small>
+                                    <strong>Yuklangan sana:</strong> {{ video.created_at|date:"d.m.Y H:i" }}<br>
+                                    <strong>Kanal:</strong> {{ video.kanal.nomi|default:"Noma'lum" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'mening_videolarim' %}" class="btn btn-secondary">Bekor qilish</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> O'zgarishlarni saqlash
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <label for="description">Tavsif:</label>
-            <textarea id="description" name="description" rows="4" required></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="thumbnail">Yangi thumbnail:</label>
-            <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
-        </div>
-        
-        <div class="form-group">
-            <label for="video">Yangi video fayl:</label>
-            <input type="file" id="video" name="video" accept="video/*">
-        </div>
-        
-        <button type="submit">Saqlash</button>
-        <a href="{% url 'video_get' %}" style="margin-left: 1rem;">Bekor qilish</a>
-    </form>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const urlParams = new URLSearchParams(window.location.search);
-const videoId = urlParams.get('id');
+    // Yangi video preview
+    document.getElementById('video').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('newVideoPreview');
+        const player = document.getElementById('newVideoPlayer');
 
-async function loadVideo() {
-    try {
-        const response = await fetch(`/api/v1/video/${videoId}/`);
-        if (response.ok) {
-            const video = await response.json();
-            document.getElementById('title').value = video.title;
-            document.getElementById('description').value = video.description;
+        if (file) {
+            const url = URL.createObjectURL(file);
+            player.src = url;
+            preview.style.display = 'block';
         } else {
-            alert('Video topilmadi');
-            window.location.href = "{% url 'video_get' %}";
+            preview.style.display = 'none';
         }
-    } catch (error) {
-        alert('Xatolik: ' + error.message);
-    }
-}
+    });
 
-document.getElementById('video-update-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('title', document.getElementById('title').value);
-    formData.append('description', document.getElementById('description').value);
-    
-    const thumbnailFile = document.getElementById('thumbnail').files[0];
-    if (thumbnailFile) {
-        formData.append('thumbnail', thumbnailFile);
-    }
-    
-    const videoFile = document.getElementById('video').files[0];
-    if (videoFile) {
-        formData.append('video', videoFile);
-    }
-    
-    try {
-        const response = await fetch(`/api/v1/video/${videoId}/`, {
-            method: 'PUT',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: formData
-        });
-        
-        if (response.ok) {
-            alert('Video muvaffaqiyatli yangilandi!');
-            window.location.href = "{% url 'video_get' %}";
+    // Yangi thumbnail preview
+    document.getElementById('thumbnail').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('newThumbPreview');
+        const img = document.getElementById('newThumbImg');
+
+        if (file) {
+            const url = URL.createObjectURL(file);
+            img.src = url;
+            preview.style.display = 'block';
         } else {
-            const error = await response.json();
-            alert('Xatolik: ' + JSON.stringify(error));
+            preview.style.display = 'none';
         }
-    } catch (error) {
-        alert('Xatolik yuz berdi: ' + error.message);
-    }
-});
-
-document.addEventListener('DOMContentLoaded', loadVideo);
+    });
 </script>
 {% endblock %}

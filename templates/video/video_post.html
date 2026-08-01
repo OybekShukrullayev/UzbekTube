@@ -1,160 +1,120 @@
 {% extends 'base.html' %}
-
 {% block title %}Video Yuklash - UzbekTube{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Yangi Video Yuklash</h2>
-    <div id="message" style="display: none; margin-bottom: 1rem; padding: 1rem; border-radius: 4px;"></div>
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Yangi Video Yuklash</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'video_yuklash' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
 
-    <form id="video-form" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="title">Video nomi:</label>
-            <input type="text" id="title" name="title" required placeholder="Video nomini kiriting">
+                    <div class="row">
+                        <!-- Chap tomon: Video fayl -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="video" class="form-label">Video fayl <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="video" name="video"
+                                       accept="video/*" required>
+                                <small class="text-muted">MP4, MOV, AVI (maksimal 500MB tavsiya qilinadi)</small>
+
+                                <!-- Video preview -->
+                                <div id="videoPreview" class="mt-2" style="display:none;">
+                                    <video id="videoPlayer" controls class="w-100" style="max-height: 300px;"></video>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="thumbnail" class="form-label">Muqova (Thumbnail)</label>
+                                <input type="file" class="form-control" id="thumbnail" name="thumbnail"
+                                       accept="image/*">
+                                <small class="text-muted">Agar yuklamasangiz, standart ko'rinish bo'ladi.</small>
+
+                                <!-- Thumbnail preview -->
+                                <div id="thumbnailPreview" class="mt-2" style="display:none;">
+                                    <img id="thumbImg" class="img-thumbnail" style="max-height: 200px;" alt="Muqova">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- O'ng tomon: Ma'lumotlar -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Video nomi <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="title" name="title"
+                                       placeholder="Video sarlavhasi" required maxlength="200">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Tavsif</label>
+                                <textarea class="form-control" id="description" name="description"
+                                          rows="5" placeholder="Video haqida..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="ochiqligi" class="form-label">Ko'rinishi</label>
+                                <select class="form-select" id="ochiqligi" name="ochiqligi">
+                                    <option value="public" selected>🌍 Hammaga ochiq</option>
+                                    <option value="unlisted">🔗 Havola orqali</option>
+                                    <option value="private">🔒 Maxfiy (faqat siz)</option>
+                                </select>
+                                <small class="text-muted">
+                                    <strong>Hammaga ochiq</strong> - Bosh sahifada ko'rinadi<br>
+                                    <strong>Havola orqali</strong> - Faqat havolani bilganlar ko'radi<br>
+                                    <strong>Maxfiy</strong> - Faqat siz ko'rasiz
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'mening_videolarim' %}" class="btn btn-secondary">Bekor qilish</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Yuklash
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <div class="form-group">
-            <label for="description">Tavsif:</label>
-            <textarea id="description" name="description" rows="4" required placeholder="Video haqida ma'lumot"></textarea>
-        </div>
-
-        <div class="form-group">
-            <label for="thumbnail">Thumbnail (rasm, ixtiyoriy):</label>
-            <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
-            <small style="color: #666;">JPG, PNG formatlar</small>
-        </div>
-
-        <div class="form-group">
-            <label for="video">Video fayl:</label>
-            <input type="file" id="video" name="video" accept="video/*" required>
-            <small style="color: #666;">MP4, WebM formatlar</small>
-        </div>
-
-        <button type="submit" id="submit-btn">Video yuklash</button>
-    </form>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// CSRF tokenni cookie dan olish funksiyasi
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+    // Video preview
+    document.getElementById('video').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('videoPreview');
+        const player = document.getElementById('videoPlayer');
 
-document.getElementById('video-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    const messageDiv = document.getElementById('message');
-    const submitBtn = document.getElementById('submit-btn');
-
-    // Yuklanmoqda holati
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Yuklanmoqda...';
-    messageDiv.style.display = 'none';
-
-    const formData = new FormData();
-    formData.append('title', document.getElementById('title').value.trim());
-    formData.append('description', document.getElementById('description').value.trim());
-
-    const thumbnailFile = document.getElementById('thumbnail').files[0];
-    if (thumbnailFile) {
-        formData.append('thumbnail', thumbnailFile);
-    }
-
-    const videoFile = document.getElementById('video').files[0];
-    if (videoFile) {
-        formData.append('video', videoFile);
-    }
-
-    // CSRF tokenni olish
-    const csrftoken = getCookie('csrftoken');
-
-    console.log('=== FormData ===');
-    for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-    }
-    console.log('CSRF Token:', csrftoken);
-
-    try {
-        const response = await fetch('/api/v1/video/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken  // CSRF tokenni header orqali yuborish
-            },
-            body: formData
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response OK:', response.ok);
-
-        const responseText = await response.text();
-        console.log('Response text:', responseText);
-
-        // Response ni JSON ga parse qilish
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            console.error('JSON parse error:', e);
-        }
-
-        if (response.ok && data) {
-            // Muvaffaqiyatli
-            messageDiv.style.display = 'block';
-            messageDiv.className = 'success';
-            messageDiv.style.backgroundColor = '#4CAF50';
-            messageDiv.style.color = 'white';
-            messageDiv.innerHTML = '✅ Video muvaffaqiyatli yuklandi!';
-
-            // Formani tozalash
-            document.getElementById('video-form').reset();
-
-            // 2 soniyadan keyin videolar sahifasiga o'tish
-            setTimeout(() => {
-                window.location.href = "{% url 'video_get' %}";
-            }, 2000);
+        if (file) {
+            const url = URL.createObjectURL(file);
+            player.src = url;
+            preview.style.display = 'block';
         } else {
-            // Xatolik
-            messageDiv.style.display = 'block';
-            messageDiv.className = 'error';
-            messageDiv.style.backgroundColor = '#f44336';
-            messageDiv.style.color = 'white';
-
-            if (data) {
-                // JSON xatolik
-                let errorMsg = '❌ Xatolik yuz berdi:<br>';
-                for (let [key, value] of Object.entries(data)) {
-                    errorMsg += `<strong>${key}:</strong> ${Array.isArray(value) ? value.join(', ') : value}<br>`;
-                }
-                messageDiv.innerHTML = errorMsg;
-            } else {
-                messageDiv.innerHTML = '❌ Noma\'lum xatolik. Status: ' + response.status;
-            }
+            preview.style.display = 'none';
         }
-    } catch (error) {
-        console.error('Fetch error:', error);
-        messageDiv.style.display = 'block';
-        messageDiv.className = 'error';
-        messageDiv.style.backgroundColor = '#f44336';
-        messageDiv.style.color = 'white';
-        messageDiv.innerHTML = '❌ Tarmoq xatosi: ' + error.message;
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Video yuklash';
-    }
-});
+    });
+
+    // Thumbnail preview
+    document.getElementById('thumbnail').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('thumbnailPreview');
+        const img = document.getElementById('thumbImg');
+
+        if (file) {
+            const url = URL.createObjectURL(file);
+            img.src = url;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    });
 </script>
 {% endblock %}

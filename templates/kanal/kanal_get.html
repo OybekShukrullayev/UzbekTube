@@ -1,43 +1,47 @@
 {% extends 'base.html' %}
-
-{% block title %}Kanallar - UzbekTube{% endblock %}
+{% block title %}{{ kanal.nomi }} - UzbekTube{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Barcha Kanallar</h2>
-    <button onclick="loadKanallar()" style="margin-bottom: 1rem;">Yangilash</button>
-    <div id="kanal-list"></div>
+<div class="card mb-4">
+    <div class="card-body">
+        <h2 class="card-title">{{ kanal.nomi }}</h2>
+        <p class="text-muted">@{{ kanal.identifikator }}</p>
+        <p>{{ kanal.description }}</p>
+        {% if kanal.havolalar %}<a href="{{ kanal.havolalar }}" target="_blank" class="btn btn-outline-primary btn-sm">Havola</a>{% endif %}
+    </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-async function loadKanallar() {
-    try {
-        const response = await fetch('/api/v1/kanal/list/');
-        const kanallar = await response.json();
-        
-        const container = document.getElementById('kanal-list');
-        if (kanallar.length === 0) {
-            container.innerHTML = '<p>Hozircha kanallar yo\'q</p>';
-            return;
-        }
-        
-        container.innerHTML = kanallar.map(kanal => `
-            <div class="card" style="margin-bottom: 1rem;">
-                <h3>${kanal.nomi}</h3>
-                <p><strong>ID:</strong> ${kanal.identifikator}</p>
-                <p><strong>Tavsif:</strong> ${kanal.description}</p>
-                ${kanal.havolalar ? `<p><strong>Havola:</strong> <a href="${kanal.havolalar}" target="_blank">${kanal.havolalar}</a></p>` : ''}
-                <p><small>Yaratilgan: ${new Date(kanal.created_at).toLocaleString('uz-UZ')}</small></p>
-                <a href="{% url 'kanal_put' %}?id=${kanal.id}" style="display: inline-block; margin-top: 0.5rem; color: #cc0000;">Tahrirlash</a>
+<div class="d-flex gap-2 mb-4">
+    <a href="{% url 'kanal_tahrirlash' %}" class="btn btn-warning">Kanalni tahrirlash</a>
+    <form action="{% url 'kanal_ochirish' %}" method="POST" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Rostdan ham kanalingizni o\'chirmoqchimisiz? Bu barcha videolaringizni ham o\'chiradi!')">Kanalni o'chirish</button>
+    </form>
+    <a href="{% url 'mening_videolarim' %}" class="btn btn-primary">Yuklangan videolar</a>
+</div>
+
+<h4>Kanalga tegishli videolar</h4>
+{% if videolar %}
+    <div class="row">
+        {% for video in videolar %}
+            <div class="col-md-4 mb-4">
+                <div class="card video-card h-100">
+                    {% if video.thumbnail %}<img src="{{ video.thumbnail.url }}" class="card-img-top" alt="{{ video.title }}">{% else %}<div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">Video</div>{% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ video.title }}</h5>
+                        <div class="mt-3">
+                            <a href="{% url 'video_tahrirlash' video.id %}" class="btn btn-sm btn-primary">Tahrirlash</a>
+                            <form action="{% url 'video_ochirish' video.id %}" method="POST" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Videoni o\'chirish?')">O'chirish</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
-        `).join('');
-    } catch (error) {
-        document.getElementById('kanal-list').innerHTML = '<div class="error">Xatolik yuz berdi: ' + error.message + '</div>';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', loadKanallar);
-</script>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">Bu kanalda hali videolar yo'q.</div>
+{% endif %}
 {% endblock %}

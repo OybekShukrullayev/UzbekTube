@@ -1,93 +1,48 @@
 {% extends 'base.html' %}
-
 {% block title %}Kanalni Tahrirlash - UzbekTube{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>Kanalni Tahrirlash</h2>
-    <form id="kanal-update-form">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="nomi">Kanal nomi:</label>
-            <input type="text" id="nomi" name="nomi" required>
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-warning">
+                <h3 class="mb-0">Kanalni Tahrirlash</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    <strong>Hozirgi identifikator:</strong> @{{ kanal.identifikator }}
+                    <em class="text-danger">(o'zgartirib bo'lmaydi)</em>
+                </p>
+
+                <form method="POST" action="{% url 'kanal_tahrirlash' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="nomi" class="form-label">Kanal nomi <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nomi" name="nomi"
+                               value="{{ kanal.nomi }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Tavsif</label>
+                        <textarea class="form-control" id="description" name="description" rows="4">{{ kanal.description }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="havolalar" class="form-label">Ijtimoiy tarmoq havolasi</label>
+                        <input type="url" class="form-control" id="havolalar" name="havolalar"
+                               value="{{ kanal.havolalar|default:'' }}" placeholder="https://t.me/kanal_nomi">
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'kanal_detay' %}" class="btn btn-secondary">Bekor qilish</a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Saqlash
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <label for="identifikator">Identifikator:</label>
-            <input type="text" id="identifikator" name="identifikator" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="description">Tavsif:</label>
-            <textarea id="description" name="description" rows="4" required></textarea>
-        </div>
-        
-        <div class="form-group">
-            <label for="havolalar">Havola:</label>
-            <input type="url" id="havolalar" name="havolalar">
-        </div>
-        
-        <button type="submit">Saqlash</button>
-        <a href="{% url 'kanal_get' %}" style="margin-left: 1rem;">Bekor qilish</a>
-    </form>
+    </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-const urlParams = new URLSearchParams(window.location.search);
-const kanalId = urlParams.get('id');
-
-async function loadKanal() {
-    try {
-        const response = await fetch(`/api/v1/kanal/list/${kanalId}/`);
-        if (response.ok) {
-            const kanal = await response.json();
-            document.getElementById('nomi').value = kanal.nomi;
-            document.getElementById('identifikator').value = kanal.identifikator;
-            document.getElementById('description').value = kanal.description;
-            document.getElementById('havolalar').value = kanal.havolalar || '';
-        } else {
-            alert('Kanal topilmadi');
-            window.location.href = "{% url 'kanal_get' %}";
-        }
-    } catch (error) {
-        alert('Xatolik: ' + error.message);
-    }
-}
-
-document.getElementById('kanal-update-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = {
-        nomi: document.getElementById('nomi').value,
-        identifikator: document.getElementById('identifikator').value,
-        description: document.getElementById('description').value,
-        havolalar: document.getElementById('havolalar').value
-    };
-    
-    try {
-        const response = await fetch(`/api/v1/kanal/list/${kanalId}/`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify(formData)
-        });
-        
-        if (response.ok) {
-            alert('Kanal muvaffaqiyatli yangilandi!');
-            window.location.href = "{% url 'kanal_get' %}";
-        } else {
-            const error = await response.json();
-            alert('Xatolik: ' + JSON.stringify(error));
-        }
-    } catch (error) {
-        alert('Xatolik yuz berdi: ' + error.message);
-    }
-});
-
-document.addEventListener('DOMContentLoaded', loadKanal);
-</script>
 {% endblock %}
